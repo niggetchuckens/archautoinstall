@@ -3,13 +3,13 @@
 # Variables
 DISK="/dev/nvme0n1" # Double check your drive with 'lsblk'
 HOSTNAME="Yuki" # Your hostname for the install
-USER="hime" #your username
+USER="hime" # Your username
 
 echo "Formatting and Partitioning..."
 parted -s $DISK mklabel gpt
 parted -s $DISK mkpart ESP fat32 1MiB 513MiB
 parted -s $DISK set 1 esp on
-parted -s $DISK mkpart primary ext4 513MiB 615GiB
+parted -s $DISK mkpart primary ext4 513MiB 750GiB
 
 mkfs.vfat -F32 ${DISK}p1
 mkfs.ext4 ${DISK}p2
@@ -19,7 +19,7 @@ mkdir /mnt/boot
 mount ${DISK}p1 /mnt/boot
 
 # Copy configuration files to be installed later
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
 cp -r "$SCRIPT_DIR/oh-my-posh" /mnt/root/
 cp "$SCRIPT_DIR/.bashrc" /mnt/root/
 
@@ -46,15 +46,9 @@ echo "$USER:password" | chpasswd
 sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
 # Bootloader
-bootctl install
-echo -e "default arch\ntimeout 3" > /boot/loader/loader.conf
-cat > /boot/loader/entries/arch.conf <<BOOTEOF
-title Arch Linux
-linux /vmlinuz-linux
-initrd /amd-ucode.img
-initrd /initramfs-linux.img
-options root=${DISK}p2 rw nvidia-drm.modeset=1
-BOOTEOF
+pacman -S --noconfirm grub efibootmgr
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+grub-mkconfig -o /boot/grub/grub.cfg
 
 # Enable Services
 systemctl enable NetworkManager
@@ -63,7 +57,6 @@ systemctl enable sddm
 # Install Desktop Environment & Tools
 pacman -S --noconfirm plasma-desktop sddm konsole dolphin wayland xorg-xwayland \
 kitty vim nano gnome-screenshot pipewire lib32-nvidia-utils
-
 EOF
 
 # Install yay (outside chroot as the user)
@@ -76,7 +69,11 @@ cd ..
 rm -rf yay
 
 # Install requested apps
-sudo -u $USER yay -S --noconfirm brave-bin visual-studio-code-bin spotify discord oh-my-posh
+sudo -u $USER yay -S --noconfirm brave-bin visual-studio-code-bin spotify discord oh-my-posh \
+python python-pip nodejs npm typescript android-studio docker docker-compose fpc texlive-core texlive-lang bash-completion
+
+# Enable Docker service
+systemctl enable docker
 
 # Copy configuration files
 mkdir -p /home/$USER/.config
