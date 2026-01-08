@@ -38,11 +38,11 @@ echo "LANG=en_US.UTF-8" > /etc/locale.conf
 echo "$HOSTNAME" > /etc/hostname
 
 # Root password
-echo "root:root" | chpasswd
+echo "root:root" | passwd 
 
 # User setup
 useradd -m -G wheel $USER
-echo "$USER:password" | chpasswd
+echo "$USER:password" | passwd $USER
 sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
 # Bootloader
@@ -50,13 +50,14 @@ pacman -S --noconfirm grub efibootmgr
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=$HOSTNAME OS
 grub-mkconfig -o /boot/grub/grub.cfg
 
+# Install Desktop Environment & Tools
+pacman -S --noconfirm plasma-desktop sddm konsole dolphin wayland xorg-xwayland \
+kitty vim nano gnome-screenshot pipewire openssh
+
 # Enable Services
 systemctl enable NetworkManager
 systemctl enable sddm
 
-# Install Desktop Environment & Tools
-pacman -S --noconfirm plasma-desktop sddm konsole dolphin wayland xorg-xwayland \
-kitty vim nano gnome-screenshot pipewire openssh
 EOF
 
 # Install yay (outside chroot as the user)
@@ -80,6 +81,7 @@ systemctl enable docker
 
 # Enable ssh service
 systemctl enable sshd
+
 # Enable Nvidia drivers 
 sudo envycontrol -s nvidia
 
