@@ -24,12 +24,12 @@ cp -r "$SCRIPT_DIR/oh-my-posh" /mnt/root/
 cp "$SCRIPT_DIR/.bashrc" /mnt/root/
 
 echo "Installing Base System..."
-pacstrap /mnt base linux linux-firmware amd-ucode nvidia nvidia-utils base-devel git networkmanager sudo
+pacstrap /mnt base linux linux-firmware amd-ucode base-devel git networkmanager sudo
 
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # Chroot configuration
-arch-chroot /mnt /bin/bash <<EOF
+arch-chroot /mnt <<EOF
 ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 hwclock --systohc
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
@@ -47,7 +47,7 @@ sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
 # Bootloader
 pacman -S --noconfirm grub efibootmgr
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=$HOSTNAME OS
 grub-mkconfig -o /boot/grub/grub.cfg
 
 # Enable Services
@@ -56,11 +56,11 @@ systemctl enable sddm
 
 # Install Desktop Environment & Tools
 pacman -S --noconfirm plasma-desktop sddm konsole dolphin wayland xorg-xwayland \
-kitty vim nano gnome-screenshot pipewire lib32-nvidia-utils
+kitty vim nano gnome-screenshot pipewire openssh
 EOF
 
 # Install yay (outside chroot as the user)
-arch-chroot /mnt /bin/bash <<EOF
+arch-chroot /mnt <<EOF
 cd /home/$USER
 sudo -u $USER git clone https://aur.archlinux.org/yay.git
 cd yay
@@ -68,12 +68,23 @@ sudo -u $USER makepkg -si --noconfirm
 cd ..
 rm -rf yay
 
-# Install requested apps
-sudo -u $USER yay -S --noconfirm brave-bin visual-studio-code-bin spotify discord oh-my-posh \
-python python-pip nodejs npm typescript android-studio docker docker-compose fpc texlive-core texlive-lang bash-completion
+# Install personal apps
+sudo -u $USER yay -S --noconfirm brave-bin visual-studio-code-bin spotify \
+discord oh-my-posh nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils \
+nvtop htop neofetch python python-pip python-virtualenv nodejs npm typescript \
+android-studio docker docker-compose fpc texlive-core texlive-lang bash-completion \
+cpupower-gui
 
 # Enable Docker service
 systemctl enable docker
+
+# Enable ssh service
+systemctl enable sshd
+# Enable Nvidia drivers 
+sudo envycontrol -s nvidia
+
+# This is to regenerate the boot image just to be sure that nvidia modules are loaded at os boot
+sudo mkinitcpio -P 
 
 # Copy configuration files
 mkdir -p /home/$USER/.config
