@@ -38,11 +38,15 @@ echo "LANG=en_US.UTF-8" > /etc/locale.conf
 echo "$HOSTNAME" > /etc/hostname
 
 # Root password
-echo "root:root" | passwd 
+read -sp "Enter root password: " ROOT_PASSWORD
+echo
+echo -e "$ROOT_PASSWORD\n$ROOT_PASSWORD" | passwd
 
 # User setup
 useradd -m -G wheel $USER
-echo "$USER:password" | passwd $USER
+read -sp "Enter password for user $USER: " USER_PASSWORD
+echo
+echo -e "$USER_PASSWORD\n$USER_PASSWORD" | passwd $USER
 sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
 # Bootloader
