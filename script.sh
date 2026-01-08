@@ -4,6 +4,9 @@
 DISK="/dev/nvme0n1" # Double check your drive with 'lsblk'
 HOSTNAME="Yuki" # Your hostname for the install
 USER="hime" # Your username
+ROOT_PASSWORD="" # Root password
+USER_PASSWORD="" # User password
+
 
 echo "Formatting and Partitioning..."
 parted -s $DISK mklabel gpt
@@ -38,14 +41,10 @@ echo "LANG=en_US.UTF-8" > /etc/locale.conf
 echo "$HOSTNAME" > /etc/hostname
 
 # Root password
-read -sp "Enter root password: " ROOT_PASSWORD
-echo
 echo -e "$ROOT_PASSWORD\n$ROOT_PASSWORD" | passwd
 
 # User setup
 useradd -m -G wheel $USER
-read -sp "Enter password for user $USER: " USER_PASSWORD
-echo
 echo -e "$USER_PASSWORD\n$USER_PASSWORD" | passwd $USER
 sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
