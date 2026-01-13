@@ -21,17 +21,26 @@ DISK="/dev/$DISK_NAME" # Double check your drive with 'lsblk'
 HOSTNAME="Yuki"        # Your hostname for the install
 
 # Formatting DISK
-echo "Formatting and Partitioning..."
-parted -s $DISK mklabel gpt
-parted -s $DISK mkpart ESP fat32 1MiB 513MiB
-parted -s $DISK set 1 esp on
-parted -s $DISK mkpart primary ext4 513MiB 750GiB
 
-mkfs.vfat -F32 ${DISK}p1
-mkfs.ext4 ${DISK}p2
+if [[ "$DISK" == *"nvme"* ]]; then
+  PART1="${DISK}p1"
+  PART2="${DISK}p2"
+else
+  PART1="${DISK}1"
+  PART2="${DISK}2"
+fi
 
-mount ${DISK}p2 /mnt
-mount --mkdir ${DISK}p1 /mnt/boot
+echo "Formatting and Partitioning $DISK..."
+parted -s "$DISK" mklabel gpt
+parted -s "$DISK" mkpart "EFI" fat32 1MiB 513MiB
+parted -s "$DISK" set 1 esp on
+parted -s "$DISK" mkpart primary ext4 513MiB 100%
+
+mkfs.vfat -F 32 "$PART1"
+mkfs.ext4 "$PART1"
+
+mount "$PART2" /mnt
+mount --mkdir "$PART1" /mnt/boot
 
 # Copy configuration files to be installed later
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
