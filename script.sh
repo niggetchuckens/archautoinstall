@@ -2,12 +2,12 @@
 
 # Variables
 DISK="/dev/nvme0n1" # Double check your drive with 'lsblk'
-HOSTNAME="Yuki" # Your hostname for the install
-USER="hime" # Your username
-ROOT_PASSWORD="" # Root password
-USER_PASSWORD="" # User password
+HOSTNAME="Yuki"     # Your hostname for the install
+USER="hime"
+PASSWORD="test"
+ROOT_PASSWORD="testing"
 
-
+# Formatting DISK
 echo "Formatting and Partitioning..."
 parted -s $DISK mklabel gpt
 parted -s $DISK mkpart ESP fat32 1MiB 513MiB
@@ -22,17 +22,17 @@ mkdir /mnt/boot
 mount ${DISK}p1 /mnt/boot
 
 # Copy configuration files to be installed later
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp -r "$SCRIPT_DIR/oh-my-posh" /mnt/root/
 cp "$SCRIPT_DIR/.bashrc" /mnt/root/
 
 echo "Installing Base System..."
 pacstrap /mnt base linux linux-firmware amd-ucode base-devel git networkmanager sudo
 
-genfstab -U /mnt >> /mnt/etc/fstab
+genfstab -U /mnt >>/mnt/etc/fstab
 
 # Chroot configuration
-arch-chroot /mnt <<EOF
+echo "$USER:$PASSWORD" | arch-chroot /mnt chpasswd <<EOF
 ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 hwclock --systohc
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
@@ -40,8 +40,6 @@ locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
 echo "$HOSTNAME" > /etc/hostname
 
-# Root password
-echo -e "$ROOT_PASSWORD\n$ROOT_PASSWORD" | passwd
 
 # User setup
 useradd -m -G wheel $USER
