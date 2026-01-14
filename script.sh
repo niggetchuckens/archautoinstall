@@ -63,6 +63,7 @@ hwclock --systohc
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
 echo "LANG=en_US.UTF-8" > /etc/locale.conf
+echo "KEYMAP=us" > /etc/vconsole.conf
 echo "$HOSTNAME" > /etc/hostname
 
 # Root password
@@ -81,7 +82,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 
 # Install Desktop Environment & Tools
 pacman -S --noconfirm gdm dolphin wayland xorg-xwayland \
-kitty vim nano openssh
+kitty vim nano openssh 
 
 # Enable Services
 systemctl enable NetworkManager
@@ -103,7 +104,7 @@ nvtop htop neofetch python python-pip python-virtualenv nodejs npm typescript \
 android-studio docker docker-compose fpc texlive-core texlive-lang bash-completion \
 cpupower-gui flameshot pipewire pipewire-pulse pipewire-alsa pipewire-jack \
 wireplumber playerctl-git pavucontrol pulseaudio-ctl rofi wezterm hilbish \
-x11-emoji-picker-git awesome-git uthash glib2-devel
+x11-emoji-picker-git awesome-git uthash glib2-devel ninja meson cmake
 
 git clone https://github.com/jonaburg/picom
 cd picom
