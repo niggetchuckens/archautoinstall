@@ -1,0 +1,1 @@
+rclone mount switch_games: /home/hime/games   --allow-other   --vfs-cache-mode full   --vfs-cache-max-age 24h   --vfs-cache-max-size 50G   --vfs-read-ahead 2G   --buffer-size 512M   --drive-chunk-size 128M   --transfers 8   --checkers 16   --vfs-read-chunk-size 128M   --vfs-read-chunk-size-limit off   --async-read=true   --daemon

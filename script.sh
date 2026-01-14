@@ -37,10 +37,14 @@ parted -s "$DISK" set 1 esp on
 parted -s "$DISK" mkpart primary ext4 513MiB 100%
 
 mkfs.vfat -F 32 "$PART1"
-mkfs.ext4 "$PART1"
+mkfs.ext4 -F "$PART1"
 
 mount "$PART2" /mnt
 mount --mkdir "$PART1" /mnt/boot
+
+mount --bind /dev /mnt/dev
+mount --bind /proc /mnt/proc
+mount --bind /sys /mnt/sys
 
 # Copy configuration files to be installed later
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -72,11 +76,11 @@ sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
 # Bootloader
 pacman -S --noconfirm grub efibootmgr
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=$HOSTNAME
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=$HOSTNAME
 grub-mkconfig -o /boot/grub/grub.cfg
 
 # Install Desktop Environment & Tools
-pacman -S --noconfirm plasma-desktop sddm konsole dolphin wayland xorg-xwayland \
+pacman -S --noconfirm gdm dolphin wayland xorg-xwayland \
 kitty vim nano openssh
 
 # Enable Services
@@ -99,15 +103,26 @@ sudo -u $USER yay -S --noconfirm brave-bin visual-studio-code-bin spotify \
 discord oh-my-posh nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils \
 nvtop htop neofetch python python-pip python-virtualenv nodejs npm typescript \
 android-studio docker docker-compose fpc texlive-core texlive-lang bash-completion \
-cpupower-gui gnome-screenshot pipewire pipewire-pulse pipewire-alsa pipewire-jack \
-wireplumber
+cpupower-gui flameshot pipewire pipewire-pulse pipewire-alsa pipewire-jack \
+wireplumber playerctl-git pavucontrol pulseaudio-ctl rofi wezterm hilbish \
+x11-emoji-picker-git awesome-git uthash glib2-devel
+
+git clone https://github.com/jonaburg/picom
+cd picom
+meson setup --buildtype=release build
+ninja -C build
+sudo ninja -C build install
+
+git clone --recurse-submodules https://github.com/ChocolateBread799/dotfiles
+cd dotfiles
+mv config/* ~/.config/
 
 # Enable pipewire for audio 
-systemctl --user enable --now pipewire.socket pipewire-pulse.socket \
+sudo -u $USER systemctl --user enable --now pipewire.socket pipewire-pulse.socket \
 pipewire,service pipewire-pulse.service wireplumber.service
 
 # Enable Docker service
-systemctl enable docker
+sudo -u $USER systemctl enable docker
 
 # Enable ssh service
 systemctl enable sshd
