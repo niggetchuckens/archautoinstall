@@ -87,19 +87,17 @@ kitty vim nano openssh
 systemctl enable NetworkManager
 systemctl enable sddm
 
-EOF
+su - $USER
 
-# Install yay (outside chroot as the user)
-arch-chroot /mnt <<EOF
 cd /home/$USER
-sudo -u $USER git clone https://aur.archlinux.org/yay.git
+git clone https://aur.archlinux.org/yay.git
 cd yay
-sudo -u $USER makepkg -si --noconfirm
+makepkg -si --noconfirm
 cd ..
 rm -rf yay
 
 # Install personal apps
-sudo -u $USER yay -S --noconfirm brave-bin visual-studio-code-bin spotify \
+yay -S --noconfirm brave-bin visual-studio-code-bin spotify \
 discord oh-my-posh nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils \
 nvtop htop neofetch python python-pip python-virtualenv nodejs npm typescript \
 android-studio docker docker-compose fpc texlive-core texlive-lang bash-completion \
@@ -118,14 +116,14 @@ cd dotfiles
 mv config/* ~/.config/
 
 # Enable pipewire for audio 
-sudo -u $USER systemctl --user enable --now pipewire.socket pipewire-pulse.socket \
+systemctl --user enable --now pipewire.socket pipewire-pulse.socket \
 pipewire,service pipewire-pulse.service wireplumber.service
 
 # Enable Docker service
-sudo -u $USER systemctl enable docker
+systemctl enable docker
 
 # Enable ssh service
-systemctl enable sshd
+sudo systemctl enable sshd
 
 # Enable Nvidia drivers 
 sudo envycontrol -s nvidia
