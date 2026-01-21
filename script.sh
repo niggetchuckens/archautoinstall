@@ -20,6 +20,30 @@ read -rp "Enter the disk to begin with the instalation process: " DISK_NAME
 DISK="/dev/$DISK_NAME" # Double check your drive with 'lsblk'
 HOSTNAME="Yuki"        # Your hostname for the install
 
+echo "Select your CPU:"
+echo "1) AMD"
+echo "2) Intel"
+read -rp "Choice: " CPU_CHOICE
+if [[ "$CPU_CHOICE" == "1" ]]; then
+  UCODE="amd-ucode"
+else
+  UCODE="intel-ucode"
+fi
+
+echo "Select your GPU:"
+echo "1) AMD"
+echo "2) Intel"
+echo "3) Nvidia"
+read -rp "Choice: " GPU_CHOICE
+case $GPU_CHOICE in
+  1) GPU_PACKAGES="mesa xf86-video-amdgpu vulkan-radeon";;
+  2) GPU_PACKAGES="mesa xf86-video-intel vulkan-intel";;
+  3) GPU_PACKAGES="nvidia-dkms nvidia-utils";;
+  *) GPU_PACKAGES="";;
+esac
+
+read -rp "Do you want to download and install dotfiles? (y/n): " INSTALL_DOTFILES
+
 # Formatting DISK
 
 if [[ "$DISK" == *"nvme"* ]]; then
@@ -37,7 +61,7 @@ parted -s "$DISK" set 1 esp on
 parted -s "$DISK" mkpart primary ext4 513MiB 100%
 
 mkfs.vfat -F 32 "$PART1"
-mkfs.ext4 -F "$PART1"
+mkfs.ext4 -F "$PART2"
 
 mount "$PART2" /mnt
 mount --mkdir "$PART1" /mnt/boot
@@ -46,19 +70,14 @@ mount --bind /dev /mnt/dev
 mount --bind /proc /mnt/proc
 mount --bind /sys /mnt/sys
 
-# Copy configuration files to be installed later
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cp -r "$SCRIPT_DIR/oh-my-posh" /mnt/root/
-cp "$SCRIPT_DIR/.bashrc" /mnt/root/
-
 echo "Installing Base System..."
-pacstrap -K /mnt base linux linux-firmware amd-ucode base-devel git networkmanager sudo
+pacstrap -K /mnt base linux linux-headers linux-firmware "$UCODE" base-devel git networkmanager sudo
 
 genfstab -U /mnt >>/mnt/etc/fstab
 
 # Chroot configuration
 arch-chroot /mnt <<EOF
-ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+ln -sf /usr/share/zoneinfo/America/Santiago /etc/localtime
 hwclock --systohc
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
@@ -77,67 +96,24 @@ sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
 # Bootloader
 pacman -S --noconfirm grub efibootmgr
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=$HOSTNAME
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=$HOSTNAME
 grub-mkconfig -o /boot/grub/grub.cfg
 
-# Install Desktop Environment & Tools
-pacman -S --noconfirm gdm dolphin wayland xorg-xwayland \
-kitty vim nano openssh 
+# Install Minimal Tools & Drivers
+pacman -S --noconfirm vim nano openssh python $GPU_PACKAGES
 
 # Enable Services
 systemctl enable NetworkManager
-systemctl enable sddm
+systemctl enable sshd
 
-su - $USER
+if [[ "$INSTALL_DOTFILES" == "y" || "$INSTALL_DOTFILES" == "Y" ]]; then
+    echo "Installing yay..."
+    su - $USER -c "cd ~ && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
+    
+    echo "Cloning and installing dotfiles..."
+    su - $USER -c "cd ~ && git clone https://github.com/niggetchuckens/dotfiles.git && cd dotfiles && chmod +x install.sh && ./install.sh"
+fi
 
-cd /home/$USER
-git clone https://aur.archlinux.org/yay.git
-cd yay
-makepkg -si --noconfirm
-cd ..
-rm -rf yay
-
-# Install personal apps
-yay -S --noconfirm brave-bin visual-studio-code-bin spotify \
-discord oh-my-posh nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils \
-nvtop htop neofetch python python-pip python-virtualenv nodejs npm typescript \
-android-studio docker docker-compose fpc texlive-core texlive-lang bash-completion \
-cpupower-gui flameshot pipewire pipewire-pulse pipewire-alsa pipewire-jack \
-wireplumber playerctl-git pavucontrol pulseaudio-ctl rofi wezterm hilbish \
-x11-emoji-picker-git awesome-git uthash glib2-devel ninja meson cmake
-
-git clone https://github.com/jonaburg/picom
-cd picom
-meson setup --buildtype=release build
-ninja -C build
-sudo ninja -C build install
-
-git clone --recurse-submodules https://github.com/ChocolateBread799/dotfiles
-cd dotfiles
-mv config/* ~/.config/
-
-# Enable pipewire for audio 
-systemctl --user enable --now pipewire.socket pipewire-pulse.socket \
-pipewire,service pipewire-pulse.service wireplumber.service
-
-# Enable Docker service
-systemctl enable docker
-
-# Enable ssh service
-sudo systemctl enable sshd
-
-# Enable Nvidia drivers 
-sudo envycontrol -s nvidia
-
-# This is to regenerate the boot image just to be sure that nvidia modules are loaded at os boot
-sudo mkinitcpio -P 
-
-# Copy configuration files
-mkdir -p /home/$USER/.config
-cp -r /root/oh-my-posh /home/$USER/.config/
-cp /root/.bashrc /home/$USER/.bashrc
-chown -R $USER:$USER /home/$USER/.config/oh-my-posh
-chown $USER:$USER /home/$USER/.bashrc
 EOF
 
 echo "Installation complete! Reboot now."
