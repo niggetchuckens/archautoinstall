@@ -111,7 +111,7 @@ if [[ "$INSTALL_DOTFILES" == "y" || "$INSTALL_DOTFILES" == "Y" ]]; then
     su - $USER -c "cd ~ && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
     
     echo "Cloning and installing dotfiles..."
-    su - $USER -c "cd ~ && git clone https://github.com/niggetchuckens/dotfiles.git && cd dotfiles && chmod +x install.sh && ./install.sh"
+    su - $USER -c "cd ~ && git clone https://github.com/niggetchuckens/dotfiles.git && cd dotfiles && python3 install.py"
 fi
 
 EOF
