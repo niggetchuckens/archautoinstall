@@ -56,9 +56,9 @@ fi
 
 echo "Formatting and Partitioning $DISK..."
 parted -s "$DISK" mklabel gpt
-parted -s "$DISK" mkpart "EFI" fat32 1MiB 513MiB
+parted -s "$DISK" mkpart "EFI" fat32 1MiB 1G
 parted -s "$DISK" set 1 esp on
-parted -s "$DISK" mkpart primary ext4 513MiB 100%
+parted -s "$DISK" mkpart primary ext4 1G 100%
 
 mkfs.vfat -F 32 "$PART1"
 mkfs.ext4 -F "$PART2"
@@ -95,7 +95,7 @@ echo -e "$USER:$PASSWORD" | chpasswd
 sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers
 
 # Bootloader
-pacman -S --noconfirm grub efibootmgr
+pacman -Syu --noconfirm grub efibootmgr
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=$HOSTNAME
 grub-mkconfig -o /boot/grub/grub.cfg
 
@@ -103,7 +103,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 pacman -S --noconfirm vim nano openssh python $GPU_PACKAGES
 
 echo "Installing yay..."
-su - $USER -c "cd ~ && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm"
+su - $USER -c "cd ~ && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay"
     
 # Enable Services
 systemctl enable NetworkManager
